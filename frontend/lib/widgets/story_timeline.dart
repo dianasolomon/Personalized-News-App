@@ -100,6 +100,8 @@ class StoryTimeline extends StatelessWidget {
     );
 
     // 3) Squarish Image Placeholder on opposite side (Perfect Square Aspect Ratio)
+    // Use title hashCode for unique images per phase
+    final imgSeed = title.hashCode.abs() % 10000;
     Widget imagePlaceholder = AspectRatio(
       aspectRatio: 1,
       child: Container(
@@ -108,7 +110,7 @@ class StoryTimeline extends StatelessWidget {
           border: Border.all(color: eventColor.withOpacity(0.5), width: 2),
           borderRadius: BorderRadius.circular(12),
           image: DecorationImage(
-            image: NetworkImage("https://picsum.photos/seed/${nodeNumber*100}/300"),
+            image: NetworkImage("https://picsum.photos/seed/$imgSeed/300"),
             fit: BoxFit.cover,
             opacity: 0.8,
           ),

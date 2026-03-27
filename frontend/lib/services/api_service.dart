@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   // Use 10.0.2.2 for Android emulator, localhost for web/iOS
-  static const String baseUrl = 'http://10.241.71.240:8001/api';
+  static const String baseUrl = 'http://10.94.8.240:8001/api';
 
   static Future<List<dynamic>> getPersonalizedFeed(String persona, List<String> interests) async {
     try {

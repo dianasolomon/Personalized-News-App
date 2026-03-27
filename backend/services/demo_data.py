@@ -1,6 +1,7 @@
 """
-Demo data module — provides rich fallback content when Gemini is unavailable.
-Each story has a matching story arc with unique phases.
+Demo data module — provides rich hardcoded content.
+Each story has articles with images and a matching story arc.
+NO external API calls needed.
 """
 
 DEMO_STORIES = {
@@ -12,7 +13,24 @@ DEMO_STORIES = {
             "tags": ["AI", "Big Tech", "Trending"],
             "momentum": "Accelerating",
             "queryTerms": "AI race OpenAI Google regulation",
-            "articles": []
+            "articles": [
+                {
+                    "title": "OpenAI Pledges $1B Safety Fund as AI Race Intensifies",
+                    "source_id": "Reuters",
+                    "pubDate": "2026-03-25",
+                    "link": "https://reuters.com",
+                    "image_url": "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600",
+                    "description": "OpenAI announced a billion-dollar fund for AI safety research while competitors ramp up spending."
+                },
+                {
+                    "title": "Google Launches Gemini 3.0 — Biggest AI Model Yet",
+                    "source_id": "TechCrunch",
+                    "pubDate": "2026-03-24",
+                    "link": "https://techcrunch.com",
+                    "image_url": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600",
+                    "description": "Google's latest AI model surpasses GPT-5 on multiple benchmarks, intensifying the race."
+                }
+            ]
         },
         {
             "storyId": "demo-ev-wars",
@@ -21,7 +39,24 @@ DEMO_STORIES = {
             "tags": ["EV", "Markets", "China"],
             "momentum": "Heating Up",
             "queryTerms": "Nio EV profit China Tesla",
-            "articles": []
+            "articles": [
+                {
+                    "title": "Nio Reports First-Ever Quarterly Profit",
+                    "source_id": "Bloomberg",
+                    "pubDate": "2026-03-23",
+                    "link": "https://bloomberg.com",
+                    "image_url": "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=600",
+                    "description": "Chinese EV maker Nio beats expectations with its first profitable quarter, signaling a turnaround."
+                },
+                {
+                    "title": "Tesla Slashes Prices Again in China Price War",
+                    "source_id": "CNBC",
+                    "pubDate": "2026-03-22",
+                    "link": "https://cnbc.com",
+                    "image_url": "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=600",
+                    "description": "Tesla reduces Model 3 and Model Y prices by up to 8% in China as competition heats up."
+                }
+            ]
         },
         {
             "storyId": "demo-social-media-law",
@@ -30,7 +65,24 @@ DEMO_STORIES = {
             "tags": ["Legal", "Meta", "Policy"],
             "momentum": "Heating Up",
             "queryTerms": "Meta YouTube addiction lawsuit",
-            "articles": []
+            "articles": [
+                {
+                    "title": "Jury Awards $6M in Landmark Social Media Addiction Case",
+                    "source_id": "WSJ",
+                    "pubDate": "2026-03-24",
+                    "link": "https://wsj.com",
+                    "image_url": "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600",
+                    "description": "Meta found 70% liable, YouTube 30% in first-ever jury verdict on social media addiction."
+                },
+                {
+                    "title": "Thousands of Similar Cases Now Filed Against Big Tech",
+                    "source_id": "The Verge",
+                    "pubDate": "2026-03-23",
+                    "link": "https://theverge.com",
+                    "image_url": "https://images.unsplash.com/photo-1563986768609-322da13575f2?w=600",
+                    "description": "Following the LA verdict, attorneys file over 2,000 new cases against Meta, TikTok, and Snap."
+                }
+            ]
         },
         {
             "storyId": "demo-energy-shift",
@@ -39,7 +91,24 @@ DEMO_STORIES = {
             "tags": ["Energy", "M&A", "Markets"],
             "momentum": "Cooling",
             "queryTerms": "Golar LNG Goldman Sachs energy",
-            "articles": []
+            "articles": [
+                {
+                    "title": "Golar LNG Hires Goldman Sachs for Strategic Review",
+                    "source_id": "Financial Times",
+                    "pubDate": "2026-03-25",
+                    "link": "https://ft.com",
+                    "image_url": "https://images.unsplash.com/photo-1513828583688-c52646db42da?w=600",
+                    "description": "The FLNG pioneer explores M&A options as energy transition reshapes the LNG market."
+                },
+                {
+                    "title": "Europe's LNG Demand Surges Amid Energy Security Push",
+                    "source_id": "Reuters",
+                    "pubDate": "2026-03-22",
+                    "link": "https://reuters.com",
+                    "image_url": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=600",
+                    "description": "European nations sign long-term LNG contracts, boosting valuations of floating LNG operators."
+                }
+            ]
         }
     ],
     "Investor": [
@@ -50,7 +119,24 @@ DEMO_STORIES = {
             "tags": ["Legal", "ORCL", "Alert"],
             "momentum": "Heating Up",
             "queryTerms": "Oracle lawsuit investor ORCL",
-            "articles": []
+            "articles": [
+                {
+                    "title": "Oracle Faces Class Action Over Inflated Cloud Metrics",
+                    "source_id": "MarketWatch",
+                    "pubDate": "2026-03-25",
+                    "link": "https://marketwatch.com",
+                    "image_url": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600",
+                    "description": "Investors allege Oracle misrepresented cloud revenue growth to inflate stock price."
+                },
+                {
+                    "title": "April 6th Deadline Looms for Oracle Shareholders",
+                    "source_id": "Barron's",
+                    "pubDate": "2026-03-24",
+                    "link": "https://barrons.com",
+                    "image_url": "https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=600",
+                    "description": "Shareholders must join the class action by April 6 or risk losing their claim."
+                }
+            ]
         },
         {
             "storyId": "demo-inv-nio",
@@ -59,7 +145,24 @@ DEMO_STORIES = {
             "tags": ["EV", "Earnings", "China"],
             "momentum": "Accelerating",
             "queryTerms": "Nio earnings profit stock",
-            "articles": []
+            "articles": [
+                {
+                    "title": "Jim Cramer Turns Bullish on Nio After Earnings Beat",
+                    "source_id": "CNBC",
+                    "pubDate": "2026-03-24",
+                    "link": "https://cnbc.com",
+                    "image_url": "https://images.unsplash.com/photo-1611605698335-8b1569810432?w=600",
+                    "description": "Cramer reverses his bearish stance, calling Nio's profit 'a real inflection point.'"
+                },
+                {
+                    "title": "Nio Deliveries Jump 40% Year-over-Year",
+                    "source_id": "Bloomberg",
+                    "pubDate": "2026-03-23",
+                    "link": "https://bloomberg.com",
+                    "image_url": "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600",
+                    "description": "Rising deliveries and cost discipline drive Nio's first profitable quarter."
+                }
+            ]
         },
         {
             "storyId": "demo-inv-jbs",
@@ -68,7 +171,24 @@ DEMO_STORIES = {
             "tags": ["Earnings", "NYSE", "Food"],
             "momentum": "Accelerating",
             "queryTerms": "JBS earnings NYSE food",
-            "articles": []
+            "articles": [
+                {
+                    "title": "JBS Smashes Q4 Estimates with $23B Revenue",
+                    "source_id": "Reuters",
+                    "pubDate": "2026-03-25",
+                    "link": "https://reuters.com",
+                    "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600",
+                    "description": "Global protein giant beats Wall Street expectations, shares rally 2.4% in after-hours trading."
+                },
+                {
+                    "title": "Food Industry Consolidation Accelerates",
+                    "source_id": "Financial Times",
+                    "pubDate": "2026-03-24",
+                    "link": "https://ft.com",
+                    "image_url": "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=600",
+                    "description": "JBS positioned as top acquirer as smaller rivals buckle under rising interest rates."
+                }
+            ]
         },
         {
             "storyId": "demo-inv-lng",
@@ -77,7 +197,24 @@ DEMO_STORIES = {
             "tags": ["Energy", "M&A", "Goldman"],
             "momentum": "Heating Up",
             "queryTerms": "Golar LNG Goldman strategic review",
-            "articles": []
+            "articles": [
+                {
+                    "title": "Shell Eyes Golar LNG as Potential Acquisition Target",
+                    "source_id": "Bloomberg",
+                    "pubDate": "2026-03-25",
+                    "link": "https://bloomberg.com",
+                    "image_url": "https://images.unsplash.com/photo-1518709766631-a6a7f45921c3?w=600",
+                    "description": "Industry sources say Shell is among potential bidders as Golar conducts its strategic review."
+                },
+                {
+                    "title": "FLNG Market to Double by 2030, Report Says",
+                    "source_id": "Energy Intel",
+                    "pubDate": "2026-03-23",
+                    "link": "https://energyintel.com",
+                    "image_url": "https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=600",
+                    "description": "Floating LNG demand projected to double, making pure-play operators like Golar attractive targets."
+                }
+            ]
         }
     ]
 }
