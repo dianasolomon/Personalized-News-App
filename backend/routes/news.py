@@ -1,13 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import requests
-import os
-from services.llm_service import generate_story_clusters, generate_story_arc
-from services.demo_data import get_demo_feed, get_demo_arc
-import hashlib
+from services.vector_service import get_vector_db, cluster_articles, vector_search
+from services.llm_service import rewrite_feed_topics, generate_story_arc
 
 router = APIRouter()
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
 class NewsRequest(BaseModel):
     persona: str
@@ -25,67 +21,32 @@ class ToggleTrackRequest(BaseModel):
 
 @router.post("/feed")
 async def get_personalized_feed(req: NewsRequest):
-    # Using newsdata.io as the key format pub_... matches it.
-    from services.firebase_service import get_news_cache, set_news_cache
+    db = get_vector_db()
     
-    cached_news = get_news_cache()
-    if cached_news:
-        data = cached_news
-    else:
-        url = f"https://newsdata.io/api/1/news?apikey={NEWS_API_KEY}&q=business&language=en"
-        response = requests.get(url)
-        
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail=f"Failed to fetch news: {response.text}")
-        
-        data = response.json()
-        set_news_cache(data)
-        
-    raw_articles = data.get("results", [])
+    # 1. Try to get raw clusters from the database (calculated during ingestion)
+    raw_clusters = db.get("raw_clusters", [])
     
-    seen_titles = set()
-    unique_articles = []
-    for a in raw_articles:
-        title = a.get("title", "")
-        if title and title not in seen_titles:
-            seen_titles.add(title)
-            unique_articles.append(a)
-            
-    # Increased the cap to ingest more context for clustering
-    articles = unique_articles[:15] 
+    # 2. If no raw clusters exist (ingestion didn't run), fallback to live clustering
+    if not raw_clusters:
+        articles = db.get("articles", [])
+        if not articles:
+            return {"feed": []}
+        raw_clusters = cluster_articles(articles, similarity_threshold=0.25)
     
-    # Compute FeedHash
-    combined_titles = "".join([a.get("title", "") for a in articles])
-    feed_hash = hashlib.md5(f"{req.persona}_{''.join(req.interests)}_{combined_titles}".encode()).hexdigest()
+    # 3. Call Gemini to polish/personalize these clusters specifically for THIS persona
+    # Note: call_gemini uses a persistent cache, so this is instant for the same persona.
+    personalized_feed = await rewrite_feed_topics(raw_clusters, req.persona, req.interests)
     
-    from services.firebase_service import get_feed_cache, set_feed_cache
-    cached_clusters = get_feed_cache(feed_hash)
-    if cached_clusters:
-        return {"feed": cached_clusters}
-    
-    clusters = await generate_story_clusters(articles, req.persona, req.interests)
-    
-    # Only cache real Gemini results
-    if clusters:
-        set_feed_cache(feed_hash, clusters)
-    else:
-        # Use rich demo data — persona-specific stories
-        clusters = get_demo_feed(req.persona, req.interests)
-        # Inject real articles into demo clusters for realism
-        for i, c in enumerate(clusters):
-            start = i * 2
-            c["articles"] = articles[start:start+2] if len(articles) > start else articles[:2]
-        
-    return {"feed": clusters}
+    return {"feed": personalized_feed}
 
 @router.post("/story/arc")
 async def get_story_arc(req: StoryArcRequest):
-    # Use demo arcs (story-specific, high quality) — will try Gemini when API key has quota
-    # Uncomment the lines below when Gemini is available:
-    # arc = await generate_story_arc(req.queryTerms, req.articlesContext, req.persona)
-    # if arc and len(arc.get("phases",[])) >= 5:
-    #     return {"arc": arc}
-    arc = get_demo_arc(req.queryTerms, req.persona)
+    # 1. Vector Search for related documents
+    retrieved_articles = vector_search(req.queryTerms, top_k=5)
+    
+    # 2. Generate structured arc heavily grounded in the retrieved context
+    # We now pass the articles list directly so it can link real URLs/images
+    arc = await generate_story_arc(req.queryTerms, retrieved_articles, req.persona)
     return {"arc": arc}
 
 @router.get("/tracked/{user_id}")

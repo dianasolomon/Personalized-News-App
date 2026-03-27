@@ -50,6 +50,17 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
       await prefs.setInt('xp', xp);
   }
 
+  String? _getStoryImage(Map<String, dynamic> story) {
+    final articles = story['articles'] as List<dynamic>?;
+    if (articles != null && articles.isNotEmpty) {
+      final imageUrl = articles[0]['image_url'];
+      if (imageUrl != null && imageUrl.toString().isNotEmpty) {
+        return imageUrl.toString();
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,7 +165,6 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                     },
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1A1A24),
                         borderRadius: BorderRadius.circular(20),
@@ -166,44 +176,85 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurpleAccent.withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.deepPurpleAccent)
+                          // Story cover image
+                          if (_getStoryImage(story) != null)
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(20),
+                                topRight: Radius.circular(20),
+                              ),
+                              child: Image.network(
+                                _getStoryImage(story)!,
+                                height: 180,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  height: 180,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Colors.deepPurple.withOpacity(0.3), Colors.cyanAccent.withOpacity(0.1)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                  child: const Center(child: Icon(Icons.article, color: Colors.white30, size: 48)),
                                 ),
-                                child: Row(
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    height: 180,
+                                    color: const Color(0xFF1A1A24),
+                                    child: const Center(child: CircularProgressIndicator(color: Colors.cyanAccent, strokeWidth: 2)),
+                                  );
+                                },
+                              ),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Icon(Icons.trending_up, color: Colors.cyanAccent, size: 14),
-                                    const SizedBox(width: 5),
-                                    Text(story['momentum'] ?? "Trending", style: GoogleFonts.outfit(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.deepPurpleAccent.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: Colors.deepPurpleAccent)
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.trending_up, color: Colors.cyanAccent, size: 14),
+                                          const SizedBox(width: 5),
+                                          Text(story['momentum'] ?? "Trending", style: GoogleFonts.outfit(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                    Text("$updatesCount Updates", style: GoogleFonts.inter(color: Colors.white54, fontSize: 12)),
                                   ],
                                 ),
-                              ),
-                              Text("$updatesCount Updates", style: GoogleFonts.inter(color: Colors.white54, fontSize: 12)),
-                            ],
+                                const SizedBox(height: 15),
+                                Text(story['storyTitle'] ?? 'Business Story', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                                const SizedBox(height: 10),
+                                Text(story['summary'] ?? "Extracting insights...", style: GoogleFonts.inter(color: Colors.white70, height: 1.5)),
+                                const SizedBox(height: 15),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: tags.take(3).map((tag) => Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white10,
+                                      borderRadius: BorderRadius.circular(8)
+                                    ),
+                                    child: Text("#$tag", style: GoogleFonts.inter(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold))
+                                  )).toList(),
+                                )
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 15),
-                          Text(story['storyTitle'] ?? 'Business Story', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                          const SizedBox(height: 10),
-                          Text(story['summary'] ?? "Extracting insights...", style: GoogleFonts.inter(color: Colors.white70, height: 1.5)),
-                          const SizedBox(height: 15),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: tags.take(3).map((tag) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white10,
-                                borderRadius: BorderRadius.circular(8)
-                              ),
-                              child: Text("#$tag", style: GoogleFonts.inter(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold))
-                            )).toList(),
-                          )
                         ],
                       )
                     ),
