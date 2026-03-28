@@ -43,21 +43,26 @@ class StoryTimeline extends StatelessWidget {
         ),
         ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          itemCount: timelineEvents.length,
+          itemCount: timelineEvents.length + 1,
           itemBuilder: (context, index) {
+            if (index == timelineEvents.length) {
+              return _buildWatchNextSection();
+            }
             // Alternating pattern: Top event in the image is on the right (index 0 is right)
-            bool isLeftNode = index % 2 != 0; 
-            return _buildTimelineRow(context, timelineEvents[index], isLeftNode, index);
+            bool isLeftNode = index % 2 != 0;
+            return _buildTimelineRow(
+                context, timelineEvents[index], isLeftNode, index);
           },
         ),
       ],
     );
   }
 
-  Widget _buildTimelineRow(BuildContext context, dynamic phase, bool isLeftNode, int index) {
+  Widget _buildTimelineRow(
+      BuildContext context, dynamic phase, bool isLeftNode, int index) {
     Color eventColor = _getEventColor(index);
     int nodeNumber = index + 1;
-    
+
     String title = phase['title'] ?? "Event $nodeNumber";
     String description = phase['summary'] ?? "";
 
@@ -70,12 +75,16 @@ class StoryTimeline extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF151520),
           border: Border.all(color: eventColor, width: 2.5),
-          borderRadius: BorderRadius.circular(4), // Crisp rectangular look from image
+          borderRadius:
+              BorderRadius.circular(4), // Crisp rectangular look from image
         ),
         child: Text(
           title.toUpperCase(),
           style: GoogleFonts.outfit(
-              color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8),
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -94,7 +103,8 @@ class StoryTimeline extends StatelessWidget {
       ),
       child: Text(
         description,
-        style: GoogleFonts.inter(fontSize: 11, color: Colors.white70, height: 1.3),
+        style:
+            GoogleFonts.inter(fontSize: 11, color: Colors.white70, height: 1.3),
         textAlign: isLeftNode ? TextAlign.right : TextAlign.left,
       ),
     );
@@ -173,18 +183,10 @@ class StoryTimeline extends StatelessWidget {
             Stack(
               alignment: Alignment.topCenter,
               children: [
-                if (isLeftNode) 
-                  Positioned(
-                    left: 0, 
-                    top: 18, 
-                    child: connectorLine
-                  ),
-                if (!isLeftNode) 
-                  Positioned(
-                    right: 0, 
-                    top: 18, 
-                    child: connectorLine
-                  ),
+                if (isLeftNode)
+                  Positioned(left: 0, top: 18, child: connectorLine),
+                if (!isLeftNode)
+                  Positioned(right: 0, top: 18, child: connectorLine),
                 centerNode,
               ],
             ),
@@ -210,6 +212,62 @@ class StoryTimeline extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildWatchNextSection() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 40),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.deepPurple.withOpacity(0.4),
+              Colors.blueAccent.withOpacity(0.1)
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.deepPurpleAccent.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.auto_awesome,
+                    color: Colors.amberAccent, size: 20),
+                const SizedBox(width: 10),
+                Text(
+                  "WHAT TO WATCH NEXT",
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Our AI models predict a shift in this narrative over the next 48 hours based on the current sentiment velocity.",
+              style: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // Draws the dashed centerline down the middle
@@ -218,7 +276,7 @@ class DashedLinePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.height <= 0) return;
     double dashHeight = 6, dashSpace = 6, startY = 0;
-    
+
     final paint = Paint()
       ..color = Colors.white24 // Dashed black line mapped to dark theme
       ..strokeWidth = 2

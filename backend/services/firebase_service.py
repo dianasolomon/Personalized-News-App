@@ -43,7 +43,7 @@ def get_tracked_stories(user_id: str) -> list:
     db = get_db()
     return db.get(user_id, {}).get("tracked_stories", [])
 
-def toggle_tracked_story(user_id: str, story_id: str, title: str):
+def toggle_tracked_story(user_id: str, story_id: str, story_data: dict):
     db = get_db()
     if user_id not in db: db[user_id] = {}
     if "tracked_stories" not in db[user_id]: db[user_id]["tracked_stories"] = []
@@ -54,11 +54,13 @@ def toggle_tracked_story(user_id: str, story_id: str, title: str):
         db[user_id]["tracked_stories"] = [s for s in db[user_id]["tracked_stories"] if s["id"] != story_id]
         status = "untracked"
     else:
-        db[user_id]["tracked_stories"].insert(0, {
+        # Store the FULL story data so the frontend can navigate back to it easily
+        tracked_item = {
             "id": story_id,
-            "title": title,
-            "tracked_at": time.time()
-        })
+            "tracked_at": time.time(),
+            **story_data # Merge full story data (title, summary, articles, etc)
+        }
+        db[user_id]["tracked_stories"].insert(0, tracked_item)
         status = "tracked"
         
     save_db(db)
