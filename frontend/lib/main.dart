@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/news_feed_screen.dart';
+import 'screens/tracked_stories_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +15,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final bool hasOnboarded;
-  
+
   const MyApp({super.key, required this.hasOnboarded});
 
   @override
@@ -25,7 +26,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark, // Sleek dark gamified UI
         primarySwatch: Colors.deepPurple,
-        textTheme: GoogleFonts.outfitTextTheme(Theme.of(context).textTheme).apply(
+        textTheme:
+            GoogleFonts.outfitTextTheme(Theme.of(context).textTheme).apply(
           bodyColor: Colors.white,
           displayColor: Colors.white,
         ),
@@ -35,6 +37,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/onboarding': (context) => const OnboardingScreen(),
         '/feed': (context) => const NewsFeedScreen(),
+        '/tracked': (context) => const TrackedStoriesScreen(),
       },
     );
   }

@@ -17,7 +17,7 @@ class StoryArcRequest(BaseModel):
 class ToggleTrackRequest(BaseModel):
     user_id: str
     story_id: str
-    title: str
+    story_data: dict
 
 @router.post("/feed")
 async def get_personalized_feed(req: NewsRequest):
@@ -57,5 +57,5 @@ async def get_tracked(user_id: str):
 @router.post("/tracked/toggle")
 async def toggle_tracked(req: ToggleTrackRequest):
     from services.firebase_service import toggle_tracked_story
-    status = toggle_tracked_story(req.user_id, req.story_id, req.title)
+    status = toggle_tracked_story(req.user_id, req.story_id, req.story_data)
     return {"status": status}

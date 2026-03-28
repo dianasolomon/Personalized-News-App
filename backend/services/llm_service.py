@@ -49,7 +49,7 @@ async def call_gemini(prompt: str) -> str:
             res = await client.post(
                 url, json=payload,
                 headers={'Content-Type': 'application/json'},
-                timeout=httpx.Timeout(10.0, connect=5.0)
+                timeout=httpx.Timeout(30.0, connect=5.0)
             )
             if res.status_code == 200:
                 text = res.json()['candidates'][0]['content']['parts'][0]['text']
@@ -153,12 +153,8 @@ async def generate_story_arc(query_terms: str, articles: list[dict], persona: st
 
     prompt = f"""
     Analyze the following recent news for the business story: '{query_terms}'.
-    Extract a 5-Phase Business Story Arc for a {persona}.
-    
-    Article Context:
-    {context_str}
-
-    For each of the 5 phases, select the ALL relevant article indices [0-{len(articles)-1}] from the context that support this phase and provide:
+    You MUST provide exactly 5 phases. The final phase (5th) MUST be titled "What Next" and focus on future outlook.
+    For each of the 5 phases, select ALL relevant article indices [0-{len(articles)-1}] from the context that support this phase and provide:
     - phase_name: (Beginning, Build-up, Conflict, Turning Point, What Next)
     - title: Catchy event title
     - summary: 2-sentence explanation

@@ -5,18 +5,15 @@ class ApiService {
   // For Android Emulator: http://10.0.2.2:8001/api
   // For Web/Desktop/iOS Sim: http://127.0.0.1:8001/api
   // For Physical Device: http://<YOUR_HOST_IP>:8001/api
-  static const String baseUrl = 'http://10.0.2.2:8001/api'; 
+  static const String baseUrl = 'http://10.0.2.2:8001/api';
 
-
-  static Future<List<dynamic>> getPersonalizedFeed(String persona, List<String> interests) async {
+  static Future<List<dynamic>> getPersonalizedFeed(
+      String persona, List<String> interests) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/news/feed'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'persona': persona,
-          'interests': interests
-        }),
+        body: jsonEncode({'persona': persona, 'interests': interests}),
       );
 
       if (response.statusCode == 200) {
@@ -31,7 +28,8 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>?> getStoryArc(String queryTerms, String articlesContext, String persona) async {
+  static Future<Map<String, dynamic>?> getStoryArc(
+      String queryTerms, String articlesContext, String persona) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/news/story/arc'),
@@ -56,7 +54,8 @@ class ApiService {
 
   static Future<List<dynamic>> getTrackedStories(String userId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/news/tracked/$userId'));
+      final response =
+          await http.get(Uri.parse('$baseUrl/news/tracked/$userId'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['tracked_stories'] ?? [];
@@ -68,16 +67,14 @@ class ApiService {
     }
   }
 
-  static Future<String?> toggleTrackStory(String userId, String storyId, String title) async {
+  static Future<String?> toggleTrackStory(
+      String userId, String storyId, Map<String, dynamic> storyData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/news/tracked/toggle'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id': userId,
-          'story_id': storyId,
-          'title': title
-        }),
+        body: jsonEncode(
+            {'user_id': userId, 'story_id': storyId, 'story_data': storyData}),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -90,7 +87,8 @@ class ApiService {
     }
   }
 
-  static Future<String> askQuestion(String articleContent, String question, String persona) async {
+  static Future<String> askQuestion(
+      String articleContent, String question, String persona) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/chat/ask'),
