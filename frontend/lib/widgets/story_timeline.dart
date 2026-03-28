@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class StoryTimeline extends StatelessWidget {
   final List<dynamic> timelineEvents;
   final String persona;
-  final VoidCallback onNodeKlicked;
+  final Function(dynamic) onNodeKlicked;
 
   const StoryTimeline({
     super.key,
@@ -63,7 +63,7 @@ class StoryTimeline extends StatelessWidget {
 
     // 1) The main Event Heading Box (Rectangular, colored border)
     Widget headerElement = InkWell(
-      onTap: onNodeKlicked, // Trigger callback for engagement
+      onTap: () => onNodeKlicked(phase), // Trigger callback for engagement
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

@@ -41,7 +41,7 @@ async def call_gemini(prompt: str) -> str:
     if prompt_hash in persistent_cache:
         return persistent_cache[prompt_hash]
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
@@ -158,7 +158,16 @@ async def generate_story_arc(query_terms: str, articles: list[dict], persona: st
     Article Context:
     {context_str}
 
-    For each of the 5 phases, select the ONE most relevant article index [0-{len(articles)-1}].
+    For each of the 5 phases, select the ALL relevant article indices [0-{len(articles)-1}] from the context that support this phase and provide:
+    - phase_name: (Beginning, Build-up, Conflict, Turning Point, What Next)
+    - title: Catchy event title
+    - summary: 2-sentence explanation
+    - sentiment: Positive/Negative/Neutral
+    - key_players: 2-3 main entities
+    - contrarian_pos: The "Bull Case" or Opportunity if this trend continues
+    - contrarian_neg: The "Bear Case" or Risk if this trend breaks
+    - article_indices: [list of integers from 0 to {len(articles)-1}]
+    
     Return ONLY a valid JSON object:
     {{
         "phases": [
@@ -168,10 +177,11 @@ async def generate_story_arc(query_terms: str, articles: list[dict], persona: st
                 "summary": "...",
                 "sentiment": "Positive/Negative/Neutral",
                 "key_players": ["..."],
-                "contrarian_perspective": "...",
-                "article_index": 0
+                "contrarian_pos": "...",
+                "contrarian_neg": "...",
+                "article_indices": [0, 1]
             }},
-            ... (repeat for Build-up, Conflict, Turning Point, What Next)
+            ... (repeat for all 5)
         ]
     }}
     """
@@ -179,35 +189,51 @@ async def generate_story_arc(query_terms: str, articles: list[dict], persona: st
     
     # Defaults / Fallback
     default_phases = [
-        {"phase_name": "Beginning", "title": "Initial Rumbles", "summary": "Early indicators pointed towards a major shift in the sector.", "sentiment": "Neutral", "key_players": ["Market Observers"], "contrarian_perspective": "This was just standard seasonal volatility.", "article_url": "", "image_url": "", "source": "News Feed"},
-        {"phase_name": "Build-up", "title": "Momentum Gathers", "summary": "Major players began shifting massive capital in anticipation.", "sentiment": "Positive", "key_players": ["Institutional Investors"], "contrarian_perspective": "The capital shifting was an overreaction to minor trends.", "article_url": "", "image_url": "", "source": "News Feed"},
-        {"phase_name": "Conflict", "title": "Regulatory Pushback", "summary": "Sudden regulatory scrutiny halted the immediate expansion.", "sentiment": "Negative", "key_players": ["Regulators", "Founders"], "contrarian_perspective": "Regulation is actually creating a massive moat for early entrants.", "article_url": "", "image_url": "", "source": "News Feed"},
-        {"phase_name": "Turning Point", "title": "The Big Pivot", "summary": "The sector aggressively evolved its core offering to survive.", "sentiment": "Neutral", "key_players": ["Tech Giants"], "contrarian_perspective": "This pivot destroys their original core value proposition.", "article_url": "", "image_url": "", "source": "News Feed"},
-        {"phase_name": "What Next", "title": "Consolidation Phase", "summary": "Expect massive M&A activity as the winners buy the losers over the next 12 months.", "sentiment": "Positive", "key_players": ["Private Equity"], "contrarian_perspective": "Anti-trust laws will block any meaningful M&A, freezing the market.", "article_url": "", "image_url": "", "source": "News Feed"}
+        {"phase_name": "Beginning", "title": "Initial Rumbles", "summary": "Early indicators pointed towards a major shift in the sector.", "sentiment": "Neutral", "key_players": ["Market Observers"], "contrarian_pos": "Early movers can capture significant market share.", "contrarian_neg": "High initial uncertainty may lead to premature capital burn.", "article_url": "", "image_url": "", "source": "News Feed"},
+        {"phase_name": "Build-up", "title": "Momentum Gathers", "summary": "Major players began shifting massive capital in anticipation.", "sentiment": "Positive", "key_players": ["Institutional Investors"], "contrarian_pos": "Network effects will create a massive moat for leaders.", "contrarian_neg": "Overcrowded trade risk as valuation gets ahead of fundamentals.", "article_url": "", "image_url": "", "source": "News Feed"},
+        {"phase_name": "Conflict", "title": "Regulatory Pushback", "summary": "Sudden regulatory scrutiny halted the immediate expansion.", "sentiment": "Negative", "key_players": ["Regulators", "Founders"], "contrarian_pos": "Regulation will clean up the industry and favor compliant giants.", "contrarian_neg": "Innovation could be throttled or pushed to offshore jurisdictions.", "article_url": "", "image_url": "", "source": "News Feed"},
+        {"phase_name": "Turning Point", "title": "The Big Pivot", "summary": "The sector aggressively evolved its core offering to survive.", "sentiment": "Neutral", "key_players": ["Tech Giants"], "contrarian_pos": "The new hybrid model is actually more scalable than the original.", "contrarian_neg": "Pivoting cost is high and user trust might be compromised.", "article_url": "", "image_url": "", "source": "News Feed"},
+        {"phase_name": "What Next", "title": "Consolidation Phase", "summary": "Expect massive M&A activity as the winners buy the losers over the next 12 months.", "sentiment": "Positive", "key_players": ["Private Equity"], "contrarian_pos": "M&A will drive efficiency and better product integration.", "contrarian_neg": "Anti-trust scrutiny will likely block major transformative deals.", "article_url": "", "image_url": "", "source": "News Feed"}
     ]
 
     if not text:
          return {"phases": default_phases}
 
-    if text.startswith("```json"): text = text[7:-3]
-    elif text.startswith("```"): text = text[3:-3]
+    if text.startswith("```json"): text = text[7:]
+    if text.startswith("```"): text = text[3:]
+    if text.endswith("```"): text = text[:-3]
         
     try:
         data = json.loads(text.strip())
         phases = data.get("phases", [])
         
-        # 2. Map article_index back to metadata
+        # 2. Map article_indices back to metadata
         for p in phases:
-            idx = p.get("article_index", 0)
-            if isinstance(idx, int) and 0 <= idx < len(articles):
-                art = articles[idx]
-                p["article_url"] = art.get("url", "")
-                p["image_url"]   = art.get("image_url", "")
-                p["source"]      = art.get("source", "News Feed")
-            else:
-                p["article_url"] = articles[0].get("url", "") if articles else ""
-                p["image_url"]   = articles[0].get("image_url", "") if articles else ""
-                p["source"]      = articles[0].get("source", "News Feed") if articles else "News Feed"
+            indices = p.get("article_indices", [])
+            if not isinstance(indices, list):
+                # Fallback if LLM provides single value or nothing
+                idx = p.get("article_index", indices)
+                indices = [idx] if isinstance(idx, int) else [0]
+            
+            p["linked_articles"] = []
+            for idx in indices:
+                if isinstance(idx, int) and 0 <= idx < len(articles):
+                    art = articles[idx]
+                    p["linked_articles"].append({
+                        "url": art.get("url", ""),
+                        "source": art.get("source", "News Feed"),
+                        "title": art.get("title", ""),
+                        "image_url": art.get("image_url", "")
+                    })
+            
+            # Legacy fallback if no articles found through indices
+            if not p["linked_articles"] and articles:
+                p["linked_articles"].append({
+                    "url": articles[0].get("url", ""),
+                    "source": articles[0].get("source", "News Feed"),
+                    "title": articles[0].get("title", ""),
+                    "image_url": articles[0].get("image_url", "")
+                })
                 
         return {"phases": phases}
     except Exception as e:
