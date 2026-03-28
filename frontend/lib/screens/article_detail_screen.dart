@@ -5,6 +5,7 @@ import '../widgets/chat_interface.dart';
 import '../widgets/story_timeline.dart';
 import '../widgets/sentiment_graph.dart';
 import '../widgets/contrarian_cards.dart';
+import '../widgets/story_arc_details_sheet.dart';
 
 class ArticleDetailScreen extends StatefulWidget {
   final Map<String, dynamic> story;
@@ -69,10 +70,17 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     }
   }
 
-  void _onNodeExplored() {
+  void _onNodeExplored(dynamic phase) {
     setState(() {
       _xpProgress = (_xpProgress + 0.1).clamp(0.0, 1.0);
     });
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StoryArcDetailsSheet(phase: phase, persona: widget.persona),
+    );
   }
 
   @override
