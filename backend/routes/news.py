@@ -47,6 +47,44 @@ async def get_story_arc(req: StoryArcRequest):
     # 2. Generate structured arc heavily grounded in the retrieved context
     # We now pass the articles list directly so it can link real URLs/images
     arc = await generate_story_arc(req.queryTerms, retrieved_articles, req.persona)
+    
+    # 3. Add dynamic "What to watch next" recommendation
+    db = get_vector_db()
+    raw_clusters = db.get("raw_clusters", [])
+    if raw_clusters:
+        from services.llm_service import _auto_shape_topic
+        import random
+        # Filter out the current topic to find something genuinely new
+        other_clusters = [c for c in raw_clusters if req.queryTerms.lower() not in c.get('rough_topic_label', '').lower()]
+        if other_clusters:
+            from services.vector_service import tokenize, build_idf, generate_embedding, dict_cosine_similarity
+            
+            # 1. Build rich text representations for other available clusters
+            cluster_texts = []
+            for c in other_clusters:
+                arts = c.get("articles", [])
+                text_repr = f"{c.get('rough_topic_label', '')} " + " ".join([a.get("title", "") for a in arts[:3]])
+                cluster_texts.append(text_repr)
+                
+            # 2. Build local IDF vocabulary
+            all_tokens = [tokenize(t) for t in cluster_texts]
+            idf = build_idf(all_tokens)
+            
+            # 3. Vectorize current story query 
+            query_vec = generate_embedding(req.queryTerms, idf)
+            
+            # 4. Find maximum cosine similarity match
+            best_sim = -1.0
+            best_cluster = other_clusters[0]
+            for i, c in enumerate(other_clusters):
+                c_vec = generate_embedding(cluster_texts[i], idf)
+                sim = dict_cosine_similarity(query_vec, c_vec)
+                if sim > best_sim:
+                    best_sim = sim
+                    best_cluster = c
+            
+            arc["next_story"] = _auto_shape_topic(best_cluster)
+
     return {"arc": arc}
 
 @router.get("/tracked/{user_id}")
