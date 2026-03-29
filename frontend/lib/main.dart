@@ -1,22 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/onboarding_screen.dart';
 import 'screens/news_feed_screen.dart';
 import 'screens/tracked_stories_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final bool hasOnboarded = prefs.getBool('has_onboarded') ?? false;
-
-  runApp(MyApp(hasOnboarded: hasOnboarded));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final bool hasOnboarded;
-
-  const MyApp({super.key, required this.hasOnboarded});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -33,9 +26,8 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFF101014),
       ),
-      initialRoute: hasOnboarded ? '/feed' : '/onboarding',
+      initialRoute: '/feed',
       routes: {
-        '/onboarding': (context) => const OnboardingScreen(),
         '/feed': (context) => const NewsFeedScreen(),
         '/tracked': (context) => const TrackedStoriesScreen(),
       },
