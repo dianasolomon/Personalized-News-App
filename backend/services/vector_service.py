@@ -7,7 +7,7 @@ from collections import defaultdict
 from dotenv import load_dotenv
 load_dotenv()
 
-VECTOR_DB_FILE = "mock_vector_db.json"
+VECTOR_DB_FILE = "news_vector_db.json"
 
 def get_vector_db():
     if not os.path.exists(VECTOR_DB_FILE):

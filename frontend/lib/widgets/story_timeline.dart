@@ -45,6 +45,8 @@ class StoryTimeline extends StatelessWidget {
           child: CustomPaint(painter: DashedLinePainter()),
         ),
         ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           itemCount: timelineEvents.length + 1,
           itemBuilder: (context, index) {
@@ -67,7 +69,16 @@ class StoryTimeline extends StatelessWidget {
     int nodeNumber = index + 1;
 
     String title = phase['title'] ?? "Event $nodeNumber";
-    String description = phase['summary'] ?? "";
+    
+    // Generate a mock sequential date for the timeline
+    final DateTime now = DateTime.now();
+    final DateTime mockDate = now.subtract(Duration(days: (5 - index) * 2));
+    final List<String> months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    final String dateString = "${months[mockDate.month - 1]} ${mockDate.day}, ${mockDate.year}";
+
+    // User requested Header Box = Date, Description Box = Heading
+    String boxText = phase['date'] ?? dateString;
+    String descriptionText = title;
 
     // 1) The main Event Heading Box (Rectangular, colored border)
     Widget headerElement = InkWell(
@@ -82,7 +93,7 @@ class StoryTimeline extends StatelessWidget {
               BorderRadius.circular(4), // Crisp rectangular look from image
         ),
         child: Text(
-          title.toUpperCase(),
+          boxText.toUpperCase(),
           style: GoogleFonts.outfit(
               color: Colors.white,
               fontSize: 11,
@@ -105,15 +116,23 @@ class StoryTimeline extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        description,
+        descriptionText,
         style:
-            GoogleFonts.inter(fontSize: 11, color: Colors.white70, height: 1.3),
+            GoogleFonts.inter(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold, height: 1.3),
         textAlign: isLeftNode ? TextAlign.right : TextAlign.left,
       ),
     );
 
-    // 3) Squarish Image Placeholder on opposite side (Perfect Square Aspect Ratio)
-    // Use title hashCode for unique images per phase
+    // 3) Squarish Image on opposite side (Perfect Square Aspect Ratio)
+    // Extract real image from the linked articles passed from backend if available
+    String? realImageUrl;
+    if (phase['linked_articles'] != null && phase['linked_articles'] is List && phase['linked_articles'].isNotEmpty) {
+      realImageUrl = phase['linked_articles'][0]['image_url'];
+      if (realImageUrl != null && realImageUrl.isEmpty) {
+        realImageUrl = null;
+      }
+    }
+    
     final imgSeed = title.hashCode.abs() % 10000;
     Widget imagePlaceholder = AspectRatio(
       aspectRatio: 1,
@@ -123,7 +142,7 @@ class StoryTimeline extends StatelessWidget {
           border: Border.all(color: eventColor.withOpacity(0.5), width: 2),
           borderRadius: BorderRadius.circular(12),
           image: DecorationImage(
-            image: NetworkImage("https://picsum.photos/seed/$imgSeed/300"),
+            image: NetworkImage(realImageUrl ?? "https://picsum.photos/seed/$imgSeed/300"),
             fit: BoxFit.cover,
             opacity: 0.8,
           ),

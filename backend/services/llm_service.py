@@ -96,14 +96,28 @@ def _auto_shape_topic(topic: dict) -> dict:
     tags = list({v for k, v in TAG_MAP.items() if k in text_lower}) or ["Business"]
     momentum = MOMENTUM_OPTIONS[hash(title) % 3]
     query_terms = " ".join(title.split()[:5])
+    
+    articles = topic.get("articles", [])
+    fallback_summary = ""
+    if articles and articles[0].get("content"):
+        content = articles[0].get("content").strip()
+        # Grab the first two full sentences instead of character cutting
+        sentences = content.split('.')
+        if len(sentences) >= 2:
+            fallback_summary = sentences[0] + '.' + sentences[1] + '.'
+        else:
+            fallback_summary = content
+    else:
+        fallback_summary = f"Recent developments regarding {title}."
+        
     return {
         "storyId": topic.get("topic_id", str(uuid.uuid4())),
         "storyTitle": title,
-        "summary": f"Emerging story covering: {title}. Click to explore the full narrative arc powered by AI.",
+        "summary": fallback_summary,
         "tags": tags[:3],
         "queryTerms": query_terms,
         "momentum": momentum,
-        "articles": topic.get("articles", []),
+        "articles": articles,
         "article_count": topic.get("article_count", 0),
     }
 
