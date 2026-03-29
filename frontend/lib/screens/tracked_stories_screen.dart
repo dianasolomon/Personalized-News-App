@@ -22,8 +22,7 @@ class _TrackedStoriesScreenState extends State<TrackedStoriesScreen> {
 
   Future<void> _loadTrackedStories() async {
     setState(() => isLoading = true);
-    final deviceId = await ApiService.getDeviceId();
-    final data = await ApiService.getTrackedStories(deviceId);
+    final data = await ApiService.getTrackedStories("default_user");
     if (mounted) {
       setState(() {
         trackedStories = data;
@@ -35,8 +34,7 @@ class _TrackedStoriesScreenState extends State<TrackedStoriesScreen> {
   Future<void> _toggleTrack(Map<String, dynamic> story) async {
     final storyId =
         story['id']?.toString() ?? story['storyId']?.toString() ?? 'unknown';
-    final deviceId = await ApiService.getDeviceId();
-    await ApiService.toggleTrackStory(deviceId, storyId, story);
+    await ApiService.toggleTrackStory("default_user", storyId, story);
     _loadTrackedStories();
   }
 

@@ -1,25 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:math';
 
 class ApiService {
   // For Android Emulator: http://10.0.2.2:8001/api
   // For Web/Desktop/iOS Sim: http://127.0.0.1:8001/api
   // For Physical Device: http://<YOUR_HOST_IP>:8001/api
   static const String baseUrl = 'http://10.0.2.2:8001/api';
-
-  static Future<String> getDeviceId() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? deviceId = prefs.getString('device_id');
-    if (deviceId == null) {
-      // Generate a fast random UUID-like string since 'uuid' package isn't installed
-      final random = Random();
-      deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}_${random.nextInt(100000)}';
-      await prefs.setString('device_id', deviceId);
-    }
-    return deviceId;
-  }
 
   static Future<List<dynamic>> getPersonalizedFeed(
       String persona, List<String> interests) async {
@@ -102,13 +88,13 @@ class ApiService {
   }
 
   static Future<String> askQuestion(
-      String queryTerms, String question, String persona) async {
+      String articleContent, String question, String persona) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/chat/ask'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'query_terms': queryTerms,
+          'article_content': articleContent,
           'question': question,
           'persona': persona
         }),

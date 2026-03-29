@@ -33,8 +33,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
     });
 
     final allStories = await ApiService.getPersonalizedFeed(persona, interests);
-    final deviceId = await ApiService.getDeviceId();
-    final trackedData = await ApiService.getTrackedStories(deviceId);
+    final trackedData = await ApiService.getTrackedStories("default_user");
     final trackedIds = trackedData.map((s) => s['id']?.toString()).toSet();
 
     if (mounted) {
@@ -61,27 +60,27 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
     await _loadData();
   }
 
-  Future<void> _refreshTrackedStatusOnly() async {
-    final deviceId = await ApiService.getDeviceId();
-    final trackedData = await ApiService.getTrackedStories(deviceId);
-    if (mounted) {
-      setState(() {
-        trackedStories = trackedData;
-      });
-    }
-  }
-
   Future<void> _toggleTrack(Map<String, dynamic> story) async {
     final storyId = (story['storyId'] ?? story['id'])?.toString() ?? 'unknown';
-    final deviceId = await ApiService.getDeviceId();
+    final wasTracked = _isStoryTracked(storyId);
 
-    await ApiService.toggleTrackStory(deviceId, storyId, story);
+    await ApiService.toggleTrackStory("default_user", storyId, story);
 
-    final trackedData = await ApiService.getTrackedStories(deviceId);
+    final trackedData = await ApiService.getTrackedStories("default_user");
     if (mounted) {
+      final trackedIds = trackedData.map((s) => s['id']?.toString()).toSet();
       setState(() {
         trackedStories = trackedData;
-        // Story stays in `feed` visually until a hard refresh.
+        if (!wasTracked) {
+          // Newly tracked → remove from feed
+          feed = feed.where((s) {
+            final id = (s['storyId'] ?? s['id'])?.toString();
+            return id != storyId;
+          }).toList();
+        } else {
+          // Un-tracked → no need to re-add to feed here;
+          // user can pull-to-refresh or switch persona to reload
+        }
       });
     }
   }
@@ -223,7 +222,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                                             ArticleDetailScreen(
                                                 story: story, persona: persona),
                                       ),
-                                    ).then((_) => _refreshTrackedStatusOnly());
+                                    ).then((_) => _loadData());
                                   },
                                   child: ClipRRect(
                                     borderRadius: const BorderRadius.only(

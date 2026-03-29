@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/article_detail_screen.dart';
 
 class StoryTimeline extends StatelessWidget {
   final List<dynamic> timelineEvents;
   final String persona;
   final Function(dynamic) onNodeKlicked;
-  final dynamic nextStory;
 
   const StoryTimeline({
     super.key,
     required this.timelineEvents,
     required this.persona,
     required this.onNodeKlicked,
-    this.nextStory,
   });
 
   // Strict colors based on reference (Yellow, Purple, Blue, Orange, Purple, Teal)
@@ -49,7 +46,7 @@ class StoryTimeline extends StatelessWidget {
           itemCount: timelineEvents.length + 1,
           itemBuilder: (context, index) {
             if (index == timelineEvents.length) {
-              return _buildWatchNextSection(context);
+              return _buildWatchNextSection();
             }
             // Alternating pattern: Top event in the image is on the right (index 0 is right)
             bool isLeftNode = index % 2 != 0;
@@ -216,104 +213,57 @@ class StoryTimeline extends StatelessWidget {
     );
   }
 
-  Widget _buildWatchNextSection(BuildContext context) {
-    if (nextStory == null) {
-      return const SizedBox.shrink(); // Don't show if no recommendation
-    }
-
-    String title = nextStory['storyTitle'] ?? "Related Story";
-    String summary = nextStory['summary'] ?? "Ready for the next narrative shift.";
-
+  Widget _buildWatchNextSection() {
     return Padding(
       padding: const EdgeInsets.only(top: 20, bottom: 40),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ArticleDetailScreen(
-                story: nextStory,
-                persona: persona,
-              ),
-            ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.deepPurple.withOpacity(0.4),
-                Colors.blueAccent.withOpacity(0.1)
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.deepPurple.withOpacity(0.4),
+              Colors.blueAccent.withOpacity(0.1)
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.deepPurpleAccent.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.auto_awesome,
+                    color: Colors.amberAccent, size: 20),
+                const SizedBox(width: 10),
+                Text(
+                  "WHAT TO WATCH NEXT",
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.deepPurpleAccent.withOpacity(0.5)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 15,
-                offset: const Offset(0, 10),
-              )
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.explore,
-                      color: Colors.amberAccent, size: 20),
-                  const SizedBox(width: 10),
-                  Text(
-                    "WHAT TO WATCH NEXT",
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            Text(
+              "Our AI models predict a shift in this narrative over the next 48 hours based on the current sentiment velocity.",
+              style: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 13,
+                height: 1.5,
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: GoogleFonts.outfit(
-                  color: Colors.cyanAccent,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                summary,
-                style: GoogleFonts.inter(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    "Read Story",
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 12),
-                ],
-              )
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

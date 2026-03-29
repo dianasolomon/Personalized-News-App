@@ -3,11 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 
 class ChatInterface extends StatefulWidget {
-  final String queryTerms; // Used for RAG vector search on the backend
+  final String articleContent;
   final String persona;
 
   const ChatInterface(
-      {super.key, required this.queryTerms, required this.persona});
+      {super.key, required this.articleContent, required this.persona});
 
   @override
   _ChatInterfaceState createState() => _ChatInterfaceState();
@@ -31,8 +31,8 @@ class _ChatInterfaceState extends State<ChatInterface> {
     _controller.clear();
     _scrollToBottom();
 
-    final answer =
-        await ApiService.askQuestion(widget.queryTerms, text, widget.persona);
+    final answer = await ApiService.askQuestion(
+        widget.articleContent, text, widget.persona);
 
     if (mounted) {
       setState(() {

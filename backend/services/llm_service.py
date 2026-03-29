@@ -5,9 +5,6 @@ import httpx
 import asyncio
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# Separate key for chat so it doesn't share quota with feed/story-arc calls.
-# Falls back to the main key if not set.
-GEMINI_CHAT_API_KEY = os.getenv("GEMINI_CHAT_API_KEY") or GEMINI_API_KEY
 from services.firebase_service import get_llm_cache, set_llm_cache
 
 import re
@@ -35,19 +32,18 @@ def extract_key_players_offline(text: str) -> list:
                 players.append({"name": w, "role": "Entity"})
         return players[:4]
 
-async def _call_gemini_with_key(prompt: str, api_key: str) -> str:
-    """Low-level Gemini call with a specific API key."""
-    if not api_key:
+async def call_gemini(prompt: str) -> str:
+    if not GEMINI_API_KEY:
         return ""
-
+        
     prompt_hash = hashlib.md5(prompt.encode()).hexdigest()
     persistent_cache = get_llm_cache()
     if prompt_hash in persistent_cache:
         return persistent_cache[prompt_hash]
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
-
+    
     try:
         async with httpx.AsyncClient() as client:
             res = await client.post(
@@ -60,20 +56,11 @@ async def _call_gemini_with_key(prompt: str, api_key: str) -> str:
                 set_llm_cache(prompt_hash, text)
                 return text
             else:
-                print(f"Gemini API Error ({res.status_code}):", res.text[:200])
+                print("Gemini API Error:", res.status_code, res.text[:200])
                 return ""
     except Exception as e:
         print("Gemini call failed:", e)
         return ""
-
-async def call_gemini(prompt: str) -> str:
-    """Uses the main GEMINI_API_KEY (feed + story arc)."""
-    return await _call_gemini_with_key(prompt, GEMINI_API_KEY)
-
-async def call_gemini_chat(prompt: str) -> str:
-    """Uses the chat-specific key, falling back to main key."""
-    return await _call_gemini_with_key(prompt, GEMINI_CHAT_API_KEY)
-
 
 import uuid
 import re as _re
@@ -108,10 +95,36 @@ def _auto_shape_topic(topic: dict) -> dict:
     }
 
 async def rewrite_feed_topics(story_topics: list, persona: str, interests: list) -> list:
-    # Always shape raw topics first — guarantees Flutter-safe output instantly
-    # We BYPASS the massive LLM rewrite here to save the strict Gemini free-tier 
-    # API quota (15 RPM) entirely for the detailed Story Arc and Chatbox.
-    return [_auto_shape_topic(t) for t in story_topics]
+    # Always shape raw topics first — guarantees Flutter-safe output even if Gemini fails
+    shaped = [_auto_shape_topic(t) for t in story_topics]
+    
+    if not GEMINI_API_KEY:
+        return shaped
+
+    interest_str = ", ".join(interests) if interests else "General Business"
+    
+    # Send only titles to keep Gemini prompt small and fast
+    topics_context = ""
+    for idx, t in enumerate(shaped):
+        topics_context += f"[{idx}] {t['storyTitle']} (covers ~{t['article_count']} articles)\n"
+
+    prompt = f"""You are a financial news editor for a {persona} interested in: {interest_str}.
+
+Rewrite these {len(shaped)} business story topic titles and provide summaries:
+{topics_context}
+
+For EACH topic index, return a JSON array with:
+- storyTitle: catchy personalized title
+- summary: 1-2 line summary for a {persona}
+- tags: array of 1-3 tags like [\"AI\", \"Markets\"]
+- queryTerms: short search phrase
+- momentum: one of \"Heating Up\", \"Accelerating\", \"Cooling\"
+
+Return ONLY a JSON array, no markdown. Keep same order as input."""
+
+    text = (await call_gemini(prompt)).strip()
+    if text.startswith("```json"): text = text[7:]
+    if text.startswith("```"): text = text[3:]
     if text.endswith("```"): text = text[:-3]
 
     if not text:
@@ -133,35 +146,54 @@ async def rewrite_feed_topics(story_topics: list, persona: str, interests: list)
         return shaped
 
 async def generate_story_arc(query_terms: str, articles: list[dict], persona: str) -> dict:
-    # Keep context compact — 200 chars per article, top 3 only
-    top_articles = articles[:3]
-    context_lines = []
-    for idx, a in enumerate(top_articles):
-        snippet = (a.get('content') or a.get('description') or '')[:200]
-        context_lines.append(f"[{idx}] {a.get('title','')} | {snippet}")
-    context_str = "\n".join(context_lines)
+    # 1. Prepare context with indices
+    context_str = ""
+    for idx, a in enumerate(articles):
+        context_str += f"[{idx}] Title: {a.get('title')}\nContent: {a.get('content')[:500]}\nSource: {a.get('source')}\n\n"
 
-    prompt = (
-        f"Analyze this business story for a {persona}: '{query_terms}'.\n"
-        f"Articles:\n{context_str}\n\n"
-        f"Return ONLY valid JSON with exactly 5 phases in this shape:\n"
-        f'{{"phases":[{{"phase_name":"Beginning","title":"...","summary":"1-2 sentences",'
-        f'"sentiment":"Positive|Negative|Neutral","key_players":["..."],'
-        f'"contrarian_pos":"...","contrarian_neg":"...","article_indices":[0]}},...]}}\n'
-        f"Phases must be: Beginning, Build-up, Conflict, Turning Point, What Next."
-    )
-
+    prompt = f"""
+    Analyze the following recent news for the business story: '{query_terms}'.
+    You MUST provide exactly 5 phases. The final phase (5th) MUST be titled "What Next" and focus on future outlook.
+    For each of the 5 phases, select ALL relevant article indices [0-{len(articles)-1}] from the context that support this phase and provide:
+    - phase_name: (Beginning, Build-up, Conflict, Turning Point, What Next)
+    - title: Catchy event title
+    - summary: 2-sentence explanation
+    - sentiment: Positive/Negative/Neutral
+    - key_players: 2-3 main entities
+    - contrarian_pos: The "Bull Case" or Opportunity if this trend continues
+    - contrarian_neg: The "Bear Case" or Risk if this trend breaks
+    - article_indices: [list of integers from 0 to {len(articles)-1}]
+    
+    Return ONLY a valid JSON object:
+    {{
+        "phases": [
+            {{
+                "phase_name": "Beginning",
+                "title": "...",
+                "summary": "...",
+                "sentiment": "Positive/Negative/Neutral",
+                "key_players": ["..."],
+                "contrarian_pos": "...",
+                "contrarian_neg": "...",
+                "article_indices": [0, 1]
+            }},
+            ... (repeat for all 5)
+        ]
+    }}
+    """
     text = (await call_gemini(prompt)).strip()
     
+    # Defaults / Fallback
+    default_phases = [
+        {"phase_name": "Beginning", "title": "Initial Rumbles", "summary": "Early indicators pointed towards a major shift in the sector.", "sentiment": "Neutral", "key_players": ["Market Observers"], "contrarian_pos": "Early movers can capture significant market share.", "contrarian_neg": "High initial uncertainty may lead to premature capital burn.", "article_url": "", "image_url": "", "source": "News Feed"},
+        {"phase_name": "Build-up", "title": "Momentum Gathers", "summary": "Major players began shifting massive capital in anticipation.", "sentiment": "Positive", "key_players": ["Institutional Investors"], "contrarian_pos": "Network effects will create a massive moat for leaders.", "contrarian_neg": "Overcrowded trade risk as valuation gets ahead of fundamentals.", "article_url": "", "image_url": "", "source": "News Feed"},
+        {"phase_name": "Conflict", "title": "Regulatory Pushback", "summary": "Sudden regulatory scrutiny halted the immediate expansion.", "sentiment": "Negative", "key_players": ["Regulators", "Founders"], "contrarian_pos": "Regulation will clean up the industry and favor compliant giants.", "contrarian_neg": "Innovation could be throttled or pushed to offshore jurisdictions.", "article_url": "", "image_url": "", "source": "News Feed"},
+        {"phase_name": "Turning Point", "title": "The Big Pivot", "summary": "The sector aggressively evolved its core offering to survive.", "sentiment": "Neutral", "key_players": ["Tech Giants"], "contrarian_pos": "The new hybrid model is actually more scalable than the original.", "contrarian_neg": "Pivoting cost is high and user trust might be compromised.", "article_url": "", "image_url": "", "source": "News Feed"},
+        {"phase_name": "What Next", "title": "Consolidation Phase", "summary": "Expect massive M&A activity as the winners buy the losers over the next 12 months.", "sentiment": "Positive", "key_players": ["Private Equity"], "contrarian_pos": "M&A will drive efficiency and better product integration.", "contrarian_neg": "Anti-trust scrutiny will likely block major transformative deals.", "article_url": "", "image_url": "", "source": "News Feed"}
+    ]
+
     if not text:
-        pass # Will fall back later
-    else:
-        if text.startswith("```json"): text = text[7:].strip()
-        if text.startswith("```"): text = text[3:].strip()
-        if text.endswith("```"): text = text[:-3].strip()
-    
-    if not text:
-        raise ValueError("Gemini API returned an empty response. You may have exceeded your free tier rate limit.")
+         return {"phases": default_phases}
 
     if text.startswith("```json"): text = text[7:]
     if text.startswith("```"): text = text[3:]
@@ -202,40 +234,18 @@ async def generate_story_arc(query_terms: str, articles: list[dict], persona: st
         return {"phases": phases}
     except Exception as e:
          print("Story Arc Parse Error:", e, text)
-         raise ValueError(f"Failed to generate story arc from API: {e}")
+         return {"phases": default_phases}
 
-async def answer_article_question(query_terms: str, question: str, persona: str) -> str:
+async def answer_article_question(article_content: str, question: str, persona: str) -> str:
+    prompt = f"""
+    You are an AI assistant helping a {persona} understand news.
+    Context Article: {article_content}
+    
+    Question: {question}
+    
+    Provide a concise, helpful answer based ONLY on the context. If the answer is not in the context, say so but provide relevant general knowledge if it helps the user. Keep it simple and direct.
     """
-    RAG-powered chat: retrieves real articles via vector search (no API cost),
-    then sends a compact, cached prompt to Gemini.
-    """
-    from services.vector_service import vector_search
-
-    # 1. Retrieve top-3 relevant articles locally (TF-IDF, zero API calls)
-    retrieved = vector_search(f"{query_terms} {question}", top_k=3)
-
-    # 2. Build compact context — max 400 chars per article to minimise tokens
-    if retrieved:
-        context_lines = []
-        for i, art in enumerate(retrieved):
-            snippet = (art.get("content") or art.get("description") or art.get("title") or "")[:400]
-            src = art.get("source") or art.get("source_id") or "News"
-            context_lines.append(f"[{i+1}] {art.get('title','')}\nSource: {src}\n{snippet}")
-        context = "\n\n".join(context_lines)
-    else:
-        context = f"Topic: {query_terms}"
-
-    # 3. Short, focused prompt — fewer tokens = fewer 429s
-    prompt = (
-        f"You are a smart news assistant for a {persona}.\n"
-        f"Use ONLY the articles below to answer the question. "
-        f"Be concise (2-3 sentences max).\n\n"
-        f"--- ARTICLES ---\n{context}\n\n"
-        f"Question: {question}"
-    )
-
-    ans = await call_gemini_chat(prompt)
+    ans = await call_gemini(prompt)
     if not ans:
-        return "API quota reached — please try again in a minute!"
+        return "I'm currently resting due to API Limits (429 Error). Please ask me again soon!"
     return ans
-
