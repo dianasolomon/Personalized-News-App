@@ -43,7 +43,8 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
 
     final data = await ApiService.getStoryArc(
         queryTerms, articlesContext, widget.persona);
-    final trackedList = await ApiService.getTrackedStories("default_user");
+    final deviceId = await ApiService.getDeviceId();
+    final trackedList = await ApiService.getTrackedStories(deviceId);
     final storyId = (widget.story['storyId'] ?? widget.story['id'])?.toString();
     bool currentlyTracked =
         trackedList.any((s) => s['id']?.toString() == storyId);
@@ -58,8 +59,9 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   }
 
   Future<void> _toggleTrack() async {
-    final status = await ApiService.toggleTrackStory("default_user",
-        widget.story['storyId']?.toString() ?? 'unknown', widget.story);
+    final deviceId = await ApiService.getDeviceId();
+    final storyId = (widget.story['storyId'] ?? widget.story['id'])?.toString() ?? 'unknown';
+    final status = await ApiService.toggleTrackStory(deviceId, storyId, widget.story);
     if (status != null && mounted) {
       setState(() {
         isTracked = status == 'tracked';
@@ -145,13 +147,30 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                 ),
                 const SizedBox(height: 20),
                 Expanded(
-                  child: StoryTimeline(
-                    timelineEvents: narrative?['phases'] is List
-                        ? List<dynamic>.from(narrative!['phases'])
-                        : [],
-                    persona: widget.persona,
-                    onNodeKlicked: _onNodeExplored,
-                  ),
+                  child: narrative == null ||
+                          narrative!['phases'] == null ||
+                          (narrative!['phases'] as List).isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                            child: Text(
+                              "Failed to generate AI Timeline.\nGemini API quota exceeded or connection failed.",
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                color: Colors.redAccent.withOpacity(0.8),
+                                fontSize: 16,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        )
+                      : StoryTimeline(
+                          timelineEvents:
+                              List<dynamic>.from(narrative!['phases']),
+                          persona: widget.persona,
+                          onNodeKlicked: _onNodeExplored,
+                          nextStory: narrative!['next_story'],
+                        ),
                 ),
               ],
             ),
@@ -186,7 +205,9 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (_, controller) => ChatInterface(
-          articleContent: widget.story['summary'] ?? 'Business constraints',
+          queryTerms: widget.story['queryTerms'] ??
+              widget.story['storyTitle'] ??
+              'Business News',
           persona: widget.persona,
         ),
       ),
