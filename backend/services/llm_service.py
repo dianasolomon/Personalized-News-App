@@ -4,8 +4,10 @@ import hashlib
 import httpx
 import asyncio
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY_NEWS = os.getenv("GEMINI_API_KEY_NEWS")
+GEMINI_API_KEY_CHAT = os.getenv("GEMINI_API_KEY_CHAT")
 from services.firebase_service import get_llm_cache, set_llm_cache
+from services.vector_service import vector_search
 
 import re
 
@@ -32,8 +34,10 @@ def extract_key_players_offline(text: str) -> list:
                 players.append({"name": w, "role": "Entity"})
         return players[:4]
 
-async def call_gemini(prompt: str) -> str:
-    if not GEMINI_API_KEY:
+async def call_gemini(prompt: str, api_key: str = None) -> str:
+    # Fallback to news key if no key provided
+    key = api_key or GEMINI_API_KEY_NEWS
+    if not key:
         return ""
         
     prompt_hash = hashlib.md5(prompt.encode()).hexdigest()
@@ -41,7 +45,7 @@ async def call_gemini(prompt: str) -> str:
     if prompt_hash in persistent_cache:
         return persistent_cache[prompt_hash]
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
@@ -112,7 +116,7 @@ async def rewrite_feed_topics(story_topics: list, persona: str, interests: list)
     # Always shape raw topics first — guarantees Flutter-safe output even if Gemini fails
     shaped = [_auto_shape_topic(t) for t in story_topics]
     
-    if not GEMINI_API_KEY:
+    if not GEMINI_API_KEY_NEWS:
         return shaped
 
     interest_str = ", ".join(interests) if interests else "General Business"
@@ -136,7 +140,7 @@ For EACH topic index, return a JSON array with:
 
 Return ONLY a JSON array, no markdown. Keep same order as input."""
 
-    text = (await call_gemini(prompt)).strip()
+    text = (await call_gemini(prompt, api_key=GEMINI_API_KEY_NEWS)).strip()
     if text.startswith("```json"): text = text[7:]
     if text.startswith("```"): text = text[3:]
     if text.endswith("```"): text = text[:-3]
@@ -195,7 +199,7 @@ async def generate_story_arc(query_terms: str, articles: list[dict], persona: st
         ]
     }}
     """
-    text = (await call_gemini(prompt)).strip()
+    text = (await call_gemini(prompt, api_key=GEMINI_API_KEY_NEWS)).strip()
     
     # Defaults / Fallback
     default_phases = [
@@ -251,15 +255,27 @@ async def generate_story_arc(query_terms: str, articles: list[dict], persona: st
          return {"phases": default_phases}
 
 async def answer_article_question(article_content: str, question: str, persona: str) -> str:
+    # Get current news context relevant to the question
+    relevant_news = vector_search(question, top_k=3)
+    news_context = ""
+    for idx, art in enumerate(relevant_news):
+        news_context += f"[Context News {idx+1}] Title: {art.get('title')}\nSource: {art.get('source')}\nContent: {art.get('content')[:300]}\n\n"
+
     prompt = f"""
     You are an AI assistant helping a {persona} understand news.
-    Context Article: {article_content}
+    
+    PRIMARY CONTEXT (from current story):
+    {article_content}
+    
+    SUPPLEMENTAL CURRENT NEWS CONTEXT:
+    {news_context}
     
     Question: {question}
     
-    Provide a concise, helpful answer based ONLY on the context. If the answer is not in the context, say so but provide relevant general knowledge if it helps the user. Keep it simple and direct.
+    Provide a concise, helpful answer that prioritizes the PRIMARY CONTEXT but incorporates the SUPPLEMENTAL CURRENT NEWS where relevant to give the user a complete and up-to-date answer. 
+    If you're using info from supplemental news, mention the source name. Keep it smart, direct and actionable for a {persona}.
     """
-    ans = await call_gemini(prompt)
+    ans = await call_gemini(prompt, api_key=GEMINI_API_KEY_CHAT)
     if not ans:
         return "I'm currently resting due to API Limits (429 Error). Please ask me again soon!"
     return ans
