@@ -2,10 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // For Android Emulator: http://10.0.2.2:8001/api
-  // For Web/Desktop/iOS Sim: http://127.0.0.1:8001/api
-  // For Physical Device: http://<YOUR_HOST_IP>:8001/api
-  static const String baseUrl = 'http://10.0.2.2:8001/api';
+  // Use your computer's local IP address for physical phone testing
+  static const String baseUrl = 'http://172.70.104.36:8001/api';
 
   static Future<List<dynamic>> getPersonalizedFeed(
       String persona, List<String> interests) async {

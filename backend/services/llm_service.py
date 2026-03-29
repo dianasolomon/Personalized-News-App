@@ -83,14 +83,28 @@ def _auto_shape_topic(topic: dict) -> dict:
     tags = list({v for k, v in TAG_MAP.items() if k in text_lower}) or ["Business"]
     momentum = MOMENTUM_OPTIONS[hash(title) % 3]
     query_terms = " ".join(title.split()[:5])
+    
+    articles = topic.get("articles", [])
+    fallback_summary = ""
+    if articles and articles[0].get("content"):
+        content = articles[0].get("content").strip()
+        # Grab the first two full sentences instead of character cutting
+        sentences = content.split('.')
+        if len(sentences) >= 2:
+            fallback_summary = sentences[0] + '.' + sentences[1] + '.'
+        else:
+            fallback_summary = content
+    else:
+        fallback_summary = f"Recent developments regarding {title}."
+        
     return {
         "storyId": topic.get("topic_id", str(uuid.uuid4())),
         "storyTitle": title,
-        "summary": f"Emerging story covering: {title}. Click to explore the full narrative arc powered by AI.",
+        "summary": fallback_summary,
         "tags": tags[:3],
         "queryTerms": query_terms,
         "momentum": momentum,
-        "articles": topic.get("articles", []),
+        "articles": articles,
         "article_count": topic.get("article_count", 0),
     }
 
@@ -115,7 +129,7 @@ Rewrite these {len(shaped)} business story topic titles and provide summaries:
 
 For EACH topic index, return a JSON array with:
 - storyTitle: catchy personalized title
-- summary: 1-2 line summary for a {persona}
+- summary: clean, readable 2-line summary (around 120-140 characters max) for a {persona}
 - tags: array of 1-3 tags like [\"AI\", \"Markets\"]
 - queryTerms: short search phrase
 - momentum: one of \"Heating Up\", \"Accelerating\", \"Cooling\"

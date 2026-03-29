@@ -213,35 +213,32 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // ── Tappable image ─────────────────────────────
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            ArticleDetailScreen(
-                                                story: story, persona: persona),
+                                if (_getStoryImage(story) != null)
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              ArticleDetailScreen(
+                                                  story: story, persona: persona),
+                                        ),
+                                      ).then((_) => _loadData());
+                                    },
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(20),
+                                        topRight: Radius.circular(20),
                                       ),
-                                    ).then((_) => _loadData());
-                                  },
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(20),
-                                      topRight: Radius.circular(20),
+                                      child: Image.network(
+                                        _getStoryImage(story)!,
+                                        height: 180,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                      )
                                     ),
-                                    child: _getStoryImage(story) != null
-                                        ? Image.network(
-                                            _getStoryImage(story)!,
-                                            height: 180,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) =>
-                                                    _imagePlaceholder(),
-                                          )
-                                        : _imagePlaceholder(),
                                   ),
-                                ),
 
                                 // ── Content below image ─────────────────────────
                                 Padding(

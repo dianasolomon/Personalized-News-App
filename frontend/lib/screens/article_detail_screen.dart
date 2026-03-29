@@ -94,7 +94,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.story['storyTitle'] ?? 'Story Tracker',
+          'Story Tracker',
           style: GoogleFonts.outfit(
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -115,45 +115,60 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Colors.cyanAccent),
-                  SizedBox(height: 15),
-                  Text("Synthesizing Narrative Timeline...",
-                      style: TextStyle(color: Colors.white54))
+                   CircularProgressIndicator(color: Colors.cyanAccent),
+                   SizedBox(height: 15),
+                   Text("Synthesizing Narrative Timeline...",
+                       style: TextStyle(color: Colors.white54))
                 ],
               ),
             )
-          : Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFF151520),
-                      borderRadius: BorderRadius.circular(20),
-                      border:
-                          Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.cyanAccent.withOpacity(0.1),
-                            blurRadius: 20,
-                            spreadRadius: -5)
-                      ]),
-                  child: Text(
-                    widget.story['summary'] ?? "Analyzing story...",
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Display the dynamic heading here so it can wrap endlessly
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Text(
+                      widget.story['storyTitle'] ?? 'Story Tracker',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.white,
+                        height: 1.3,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: StoryTimeline(
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF151520),
+                        borderRadius: BorderRadius.circular(20),
+                        border:
+                            Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.cyanAccent.withOpacity(0.1),
+                              blurRadius: 20,
+                              spreadRadius: -5)
+                        ]),
+                    child: Text(
+                      widget.story['summary'] ?? "Analyzing story...",
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  StoryTimeline(
                     timelineEvents: narrative?['phases'] is List
                         ? List<dynamic>.from(narrative!['phases'])
                         : [],
                     persona: widget.persona,
                     onNodeKlicked: _onNodeExplored,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 100), // Ensures content clears the floating action button
+                ],
+              ),
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showChat,
