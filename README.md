@@ -22,7 +22,7 @@ MyET reimagines news consumption by:
 - ⏳ 5-phase Story Arcs (Beginning → Build-up → Conflict → Turning Point → What Next)  
 - 💬 Context-aware AI chat (RAG-based, grounded in real news)  
 - 📊 Event tracking and evolving timelines  
-- 🔍 Key players, sentiment, and future outlook extraction  
+- 🔍 Key players, sentiment, perspectives and future outlook extraction  
 - ⚡ Optimized with caching for faster responses  
 
 ---
