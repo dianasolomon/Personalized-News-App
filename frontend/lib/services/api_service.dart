@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   // Use your computer's local IP address for physical phone testing
-  static const String baseUrl = 'http://10.197.156.240:8001/api';
+  static const String baseUrl = 'http://10.143.3.240:8001/api';
 
   static Future<List<dynamic>> getPersonalizedFeed(
       String persona, List<String> interests) async {
